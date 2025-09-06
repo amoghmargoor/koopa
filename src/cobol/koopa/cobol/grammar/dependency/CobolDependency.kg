@@ -1,0 +1,497 @@
+grammar CobolDependency extends CobolDependencyBase.
+
+## #############################################################################
+## Simple COBOL Dependency Grammar
+## Focus: Extract only dependency-related constructs
+## -----------------------------------------------------------------------------
+
+# Main entry point - parse for dependencies
+def dependencyAnalysis =
+    (dependencyStatement | skipStatement)*
+    [eof]
+end
+
+# Any statement that creates dependencies
+def dependencyStatement =
+    ( copyStatement
+    | callStatement
+    | programDefinition
+    | functionDefinition
+    )
+end
+
+# Skip any non-dependency statements
+def skipStatement =
+    ( anyStatement
+    | anyParagraph
+    | anySection
+    | anyDivision
+    | anyLine
+    )
+end
+
+## #############################################################################
+## COPY statements - main dependency source
+## -----------------------------------------------------------------------------
+
+def copyStatement = copyStatementBody . end
+
+private def copyStatementBody =
+    COPY textName [ (OF | IN) libraryName ]
+    [SUPPRESS [PRINTING]]
+    [replacing]
+
+  where def replacing = REPLACING (replacementInstruction)+ end
+end
+
+def replacementInstruction =
+    [leading | trailing] replacementOperand
+    BY replacementOperand
+
+  where def leading  = LEADING   end
+  where def trailing = TRAILING  end
+end
+
+def replacementOperand = 
+    ( pseudoLiteral
+    | literal
+    | cobolWord
+    )
+end
+
+## #############################################################################
+## CALL statements - program dependencies
+## -----------------------------------------------------------------------------
+
+def callStatement = callStatementBody . end
+
+private def callStatementBody =
+    CALL ( literal | cobolWord )
+    [USING ( byReference | byContent | byValue )+]
+    [returning dataName]
+    [onOverflow onOverflowStatement]
+    [onException onExceptionStatement]
+    [notOnException notOnExceptionStatement]
+    [endCall]
+
+  where def byReference = [[BY] REFERENCE] (modifier | arg)+ end
+  where def byContent = [BY] CONTENT (modifier | arg)+ end
+  where def byValue = [BY] VALUE (modifier | arg)+ end
+  where def onOverflowStatement = ( statement )* end
+  where def onExceptionStatement = ( statement )* end
+  where def notOnExceptionStatement = ( statement )* end
+  where def endCall = END-CALL end
+end
+
+## #############################################################################
+## Program definitions - what we're calling
+## -----------------------------------------------------------------------------
+
+def programDefinition = programDefinitionBody . end
+
+private def programDefinitionBody =
+    ( identificationDivision :
+        [header: (ID | IDENTIFICATION) DIVISION .]
+        programIdParagraph
+    ) 
+    
+    [environmentDivision]
+    [dataDivision]
+    [procedureDivision]
+    END PROGRAM programName
+end
+
+def functionDefinition = functionDefinitionBody . end
+
+private def functionDefinitionBody =
+    ( identificationDivision :
+        [header: (ID | IDENTIFICATION) DIVISION .]
+        functionIdParagraph
+    ) 
+    
+    [environmentDivision]
+    [dataDivision]
+    [procedureDivision]
+    END FUNCTION functionName
+end
+
+## #############################################################################
+## Identification paragraphs - program names
+## -----------------------------------------------------------------------------
+
+def programIdParagraph =
+    PROGRAM-ID . programName [IS] [commonName] [AS] [commonName]
+end
+
+def functionIdParagraph =
+    FUNCTION-ID . functionName [IS] [commonName] [AS] [commonName]
+end
+
+## #############################################################################
+## Divisions - simplified structure
+## -----------------------------------------------------------------------------
+
+def identificationDivision =
+    (ID | IDENTIFICATION) DIVISION .
+    ( programIdParagraph
+    | functionIdParagraph
+    | copyStatement
+    )*
+end
+
+def environmentDivision =
+    ENVIRONMENT DIVISION .
+    ( configurationSection
+    | inputOutputSection
+    | copyStatement
+    )*
+end
+
+def dataDivision =
+    DATA DIVISION .
+    ( fileSection
+    | workingStorageSection
+    | linkageSection
+    | copyStatement
+    )*
+end
+
+def procedureDivision =
+    PROCEDURE DIVISION .
+    [usingClause]
+    [returningClause]
+    ( statement | copyStatement )*
+end
+
+## #############################################################################
+## Sections - minimal structure
+## -----------------------------------------------------------------------------
+
+def configurationSection =
+    CONFIGURATION SECTION .
+    ( specialNamesParagraph
+    | copyStatement
+    )*
+end
+
+def inputOutputSection =
+    INPUT-OUTPUT SECTION .
+    ( fileControlParagraph
+    | copyStatement
+    )*
+end
+
+def fileSection =
+    FILE SECTION .
+    ( fileDescriptionEntry
+    | copyStatement
+    )*
+end
+
+def workingStorageSection =
+    WORKING-STORAGE SECTION .
+    ( dataDescriptionEntry
+    | copyStatement
+    )*
+end
+
+def linkageSection =
+    LINKAGE SECTION .
+    ( dataDescriptionEntry
+    | copyStatement
+    )*
+end
+
+## #############################################################################
+## Paragraphs and entries
+## -----------------------------------------------------------------------------
+
+def specialNamesParagraph =
+    SPECIAL-NAMES .
+    ( specialNameStatement
+    | copyStatement
+    )*
+    [.]
+end
+
+def fileControlParagraph =
+    FILE-CONTROL .
+    ( selectStatement
+    | copyStatement
+    )+
+end
+
+def fileDescriptionEntry =
+    FD fileName [fileDescriptionClause]* .
+end
+
+def dataDescriptionEntry =
+    ( levelNumber | levelNumber77 )
+    [ dataName | filler ]
+    [ pictureClause ]
+    [ valueClause ]
+    [ copyStatement ]
+end
+
+## #############################################################################
+## Basic elements
+## -----------------------------------------------------------------------------
+
+def programName =
+    ( alphanumeric
+    | justAName
+    )
+end
+
+def alphanumeric =
+    ( alphanumericLiteral
+    | alphanumericConstant
+    )
+end
+
+def alphanumericConstant =
+    justAName
+end
+
+private def justAName =
+    (%not hexadecimalLiteral)
+    cobolWord
+end
+
+private def hexadecimalLiteral =
+    ( hexadecimal
+    | alphanumericHexadecimal
+    | nationalAlphanumericHexadecimal
+    | booleanHexadecimal
+    )
+end
+
+def hexadecimal =
+    'H' ++ str
+end
+
+def alphanumericHexadecimal =
+    'X' ++ str
+end
+
+def nationalAlphanumericHexadecimal =
+    'NX' ++ str
+end
+
+def booleanHexadecimal =
+    'BX' ++ str
+end
+
+def functionName = 
+    justAName
+end
+
+def commonName = 
+    justAName
+end
+
+def textName = 
+    justAName
+end
+
+def libraryName = 
+    justAName
+end
+
+def dataName = 
+    justAName
+end
+
+def fileName = 
+    ( alphanumeric
+    | justAName
+    )
+end
+
+def literal =
+    ( numericLiteral
+    | alphanumericLiteral
+    )
+end
+
+def numericLiteral =
+    ( integerLiteral
+    | decimalLiteral
+    )
+end
+
+def integerLiteral =
+    ( '+' ++ uintgr
+    | '-' ++ uintgr
+    | uintgr
+    )
+end
+
+def decimalLiteral =
+    ( ('+' | '-') ++ unsigned_decimal
+    | unsigned_decimal
+    )
+end
+
+def alphanumericLiteral =
+    ( 'X' ++ str
+    | 'N' ++ str
+    | str
+    )
+end
+
+def pseudoLiteral =
+    ('=' ++ '=') 
+    ((_)*) %upto {'=' ++ ('=' %not '=')}
+    ('=' ++ '=') 
+end
+
+def str = 
+    (@STRING _) [++ ((@STRING _)+)]
+end
+
+def unsigned_decimal =
+    ( uintgr ++ ( (',' | '.') uintgr )
+    | '.' ++ uintgr
+    )
+end
+
+def uintgr = 
+    @NUMBER _ [++ ((@NUMBER _)+)]
+end
+
+## #############################################################################
+## Additional elements
+## -----------------------------------------------------------------------------
+
+def levelNumber = 
+    @NUMBER _
+end
+
+def levelNumber77 = 
+    77
+end
+
+def filler = 
+    FILLER
+end
+
+def pictureClause = 
+    PICTURE [IS] pictureString
+end
+
+def valueClause = 
+    VALUE [IS] literal
+end
+
+def pictureString = 
+    @WORD _
+end
+
+def modifier = 
+    (OMITTED | cobolWord)
+end
+
+def arg = 
+    (literal | dataName | cobolWord)
+end
+
+def usingClause = 
+    USING (byReference | byContent | byValue)+
+end
+
+def returningClause = 
+    RETURNING dataName
+end
+
+def specialNameStatement = 
+    cobolWord [IS] cobolWord
+end
+
+def selectStatement = 
+    SELECT [OPTIONAL] fileName ASSIGN TO (assignmentName | literal)
+end
+
+def assignmentName = 
+    cobolWord
+end
+
+def fileDescriptionClause = 
+    cobolWord
+end
+
+def statement = 
+    ( anyWord | anyLiteral | anySymbol | anyWhitespace )+
+    ( [.] | [eol] )
+end
+
+## #############################################################################
+## Skip statements - handle non-dependency constructs
+## -----------------------------------------------------------------------------
+
+# Skip any statement we don't care about
+def anyStatement =
+    ( anyWord
+    | anyLiteral
+    | anySymbol
+    | anyWhitespace
+    )+
+    [.]
+end
+
+# Skip any paragraph we don't care about
+def anyParagraph =
+    ( anyWord
+    | anyLiteral
+    | anySymbol
+    | anyWhitespace
+    )+
+    [.]
+end
+
+# Skip any section we don't care about
+def anySection =
+    ( anyWord
+    | anyLiteral
+    | anySymbol
+    | anyWhitespace
+    )+
+    [.]
+end
+
+# Skip any division we don't care about
+def anyDivision =
+    ( anyWord
+    | anyLiteral
+    | anySymbol
+    | anyWhitespace
+    )+
+    [.]
+end
+
+# Skip any line we don't care about
+def anyLine =
+    ( anyWord
+    | anyLiteral
+    | anySymbol
+    | anyWhitespace
+    )+
+    [eol]
+end
+
+# Basic skip elements
+def anyWord = 
+    @WORD _
+end
+
+def anyLiteral = 
+    (literal | str)
+end
+
+def anySymbol = 
+    @SYMBOL _
+end
+
+def anyWhitespace = 
+    @WHITESPACE _
+end
