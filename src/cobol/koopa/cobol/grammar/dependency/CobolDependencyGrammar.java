@@ -110,191 +110,6 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
     }
     
     // ========================================================
-    // copyStatement
-    // ........................................................
-    
-    private ParserCombinator copyStatementParser = null;
-    
-    public final Start copyStatement = Start.on(getNamespace(), "copyStatement");
-    
-    public ParserCombinator copyStatement() {
-      if (copyStatementParser == null) {
-        FutureParser future = scoped("copyStatement", PUBLIC, true);
-        copyStatementParser = future;
-        future.setParser(
-          sequence(
-            copyStatementBody(),
-            literal(".")
-          )
-        );
-      }
-    
-      return copyStatementParser;
-    }
-    
-    // ========================================================
-    // copyStatementBody
-    // ........................................................
-    
-    private ParserCombinator copyStatementBodyParser = null;
-    
-    protected final Start copyStatementBody = Start.on(getNamespace(), "copyStatementBody");
-    
-    protected ParserCombinator copyStatementBody() {
-      if (copyStatementBodyParser == null) {
-        FutureParser future = scoped("copyStatementBody", PRIVATE, true);
-        copyStatementBodyParser = future;
-        future.setParser(
-          sequence(
-            keyword("COPY"),
-            textName(),
-            optional(
-              sequence(
-                choice(
-                  keyword("OF"),
-                  keyword("IN")
-                ),
-                libraryName()
-              )
-            ),
-            optional(
-              sequence(
-                keyword("SUPPRESS"),
-                optional(
-                  keyword("PRINTING")
-                )
-              )
-            ),
-            optional(
-              copyStatementBody$replacing()
-            )
-          )
-        );
-      }
-    
-      return copyStatementBodyParser;
-    }
-    
-    // ========================================================
-    // replacing
-    // ........................................................
-    
-    private ParserCombinator copyStatementBody$replacingParser = null;
-    
-    public final Start copyStatementBody$replacing = Start.on(getNamespace(), "replacing");
-    
-    public ParserCombinator copyStatementBody$replacing() {
-      if (copyStatementBody$replacingParser == null) {
-        FutureParser future = scoped("replacing", PUBLIC, true);
-        copyStatementBody$replacingParser = future;
-        future.setParser(
-          sequence(
-            keyword("REPLACING"),
-            plus(
-              replacementInstruction()
-            )
-          )
-        );
-      }
-    
-      return copyStatementBody$replacingParser;
-    }
-    
-    // ========================================================
-    // replacementInstruction
-    // ........................................................
-    
-    private ParserCombinator replacementInstructionParser = null;
-    
-    public final Start replacementInstruction = Start.on(getNamespace(), "replacementInstruction");
-    
-    public ParserCombinator replacementInstruction() {
-      if (replacementInstructionParser == null) {
-        FutureParser future = scoped("replacementInstruction", PUBLIC, true);
-        replacementInstructionParser = future;
-        future.setParser(
-          sequence(
-            optional(
-              choice(
-                replacementInstruction$leading(),
-                replacementInstruction$trailing()
-              )
-            ),
-            replacementOperand(),
-            keyword("BY"),
-            replacementOperand()
-          )
-        );
-      }
-    
-      return replacementInstructionParser;
-    }
-    
-    // ========================================================
-    // leading
-    // ........................................................
-    
-    private ParserCombinator replacementInstruction$leadingParser = null;
-    
-    public final Start replacementInstruction$leading = Start.on(getNamespace(), "leading");
-    
-    public ParserCombinator replacementInstruction$leading() {
-      if (replacementInstruction$leadingParser == null) {
-        FutureParser future = scoped("leading", PUBLIC, true);
-        replacementInstruction$leadingParser = future;
-        future.setParser(
-          keyword("LEADING")
-        );
-      }
-    
-      return replacementInstruction$leadingParser;
-    }
-    
-    // ========================================================
-    // trailing
-    // ........................................................
-    
-    private ParserCombinator replacementInstruction$trailingParser = null;
-    
-    public final Start replacementInstruction$trailing = Start.on(getNamespace(), "trailing");
-    
-    public ParserCombinator replacementInstruction$trailing() {
-      if (replacementInstruction$trailingParser == null) {
-        FutureParser future = scoped("trailing", PUBLIC, true);
-        replacementInstruction$trailingParser = future;
-        future.setParser(
-          keyword("TRAILING")
-        );
-      }
-    
-      return replacementInstruction$trailingParser;
-    }
-    
-    // ========================================================
-    // replacementOperand
-    // ........................................................
-    
-    private ParserCombinator replacementOperandParser = null;
-    
-    public final Start replacementOperand = Start.on(getNamespace(), "replacementOperand");
-    
-    public ParserCombinator replacementOperand() {
-      if (replacementOperandParser == null) {
-        FutureParser future = scoped("replacementOperand", PUBLIC, true);
-        replacementOperandParser = future;
-        future.setParser(
-          choice(
-            pseudoLiteral(),
-            literal(),
-            cobolWord()
-          )
-        );
-      }
-    
-      return replacementOperandParser;
-    }
-    
-    // ========================================================
     // callStatement
     // ........................................................
     
@@ -308,8 +123,57 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
         callStatementParser = future;
         future.setParser(
           sequence(
-            callStatementBody(),
-            literal(".")
+            keyword("CALL"),
+            choice(
+              sequence(
+                optional(
+                  sequence(
+                    callStatement$programName(),
+                    keyword("AS")
+                  )
+                ),
+                keyword("NESTED")
+              ),
+              sequence(
+                callStatement$programName(),
+                keyword("AS"),
+                callStatement$programPrototypeName()
+              ),
+              sequence(
+                as("mnemonicName",
+                  identifier()
+                ),
+                callStatement$programName()
+              ),
+              callStatement$programName()
+            ),
+            optional(
+              callStatement$using()
+            ),
+            optional(
+              callStatement$giving()
+            ),
+            optional(
+              as("unknown",
+                skipto(
+                  somethingFollowingAStatement()
+                )
+              )
+            ),
+            optional(
+              choice(
+                onOverflow(),
+                permuted(
+                  onException(),
+                  notOnException()
+                )
+              )
+            ),
+            optional(
+              as("end",
+                keyword("END-CALL")
+              )
+            )
           )
         );
       }
@@ -318,82 +182,90 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
     }
     
     // ========================================================
-    // callStatementBody
+    // programName
     // ........................................................
     
-    private ParserCombinator callStatementBodyParser = null;
+    private ParserCombinator callStatement$programNameParser = null;
     
-    protected final Start callStatementBody = Start.on(getNamespace(), "callStatementBody");
+    public final Start callStatement$programName = Start.on(getNamespace(), "programName");
     
-    protected ParserCombinator callStatementBody() {
-      if (callStatementBodyParser == null) {
-        FutureParser future = scoped("callStatementBody", PRIVATE, true);
-        callStatementBodyParser = future;
+    public ParserCombinator callStatement$programName() {
+      if (callStatement$programNameParser == null) {
+        FutureParser future = scoped("programName", PUBLIC, true);
+        callStatement$programNameParser = future;
+        future.setParser(
+          choice(
+            alphanumericLiteral(),
+            identifier()
+          )
+        );
+      }
+    
+      return callStatement$programNameParser;
+    }
+    
+    // ========================================================
+    // programPrototypeName
+    // ........................................................
+    
+    private ParserCombinator callStatement$programPrototypeNameParser = null;
+    
+    public final Start callStatement$programPrototypeName = Start.on(getNamespace(), "programPrototypeName");
+    
+    public ParserCombinator callStatement$programPrototypeName() {
+      if (callStatement$programPrototypeNameParser == null) {
+        FutureParser future = scoped("programPrototypeName", PUBLIC, true);
+        callStatement$programPrototypeNameParser = future;
+        future.setParser(
+          justAName()
+        );
+      }
+    
+      return callStatement$programPrototypeNameParser;
+    }
+    
+    // ========================================================
+    // using
+    // ........................................................
+    
+    private ParserCombinator callStatement$usingParser = null;
+    
+    public final Start callStatement$using = Start.on(getNamespace(), "using");
+    
+    public ParserCombinator callStatement$using() {
+      if (callStatement$usingParser == null) {
+        FutureParser future = scoped("using", PUBLIC, true);
+        callStatement$usingParser = future;
         future.setParser(
           sequence(
-            keyword("CALL"),
-            choice(
-              literal(),
-              cobolWord()
-            ),
-            optional(
-              sequence(
-                keyword("USING"),
-                plus(
-                  choice(
-                    callStatementBody$byReference(),
-                    callStatementBody$byContent(),
-                    callStatementBody$byValue()
-                  )
-                )
+            keyword("USING"),
+            plus(
+              choice(
+                callStatement$using$byReference(),
+                callStatement$using$byContent(),
+                callStatement$using$byValue(),
+                copyStatement()
               )
-            ),
-            optional(
-              sequence(
-                returning(),
-                dataName()
-              )
-            ),
-            optional(
-              sequence(
-                onOverflow(),
-                callStatementBody$onOverflowStatement()
-              )
-            ),
-            optional(
-              sequence(
-                onException(),
-                callStatementBody$onExceptionStatement()
-              )
-            ),
-            optional(
-              sequence(
-                notOnException(),
-                callStatementBody$notOnExceptionStatement()
-              )
-            ),
-            optional(
-              callStatementBody$endCall()
             )
           )
         );
       }
     
-      return callStatementBodyParser;
+      return callStatement$usingParser;
     }
     
     // ========================================================
     // byReference
     // ........................................................
     
-    private ParserCombinator callStatementBody$byReferenceParser = null;
+    private ParserCombinator callStatement$using$byReferenceParser = null;
     
-    public final Start callStatementBody$byReference = Start.on(getNamespace(), "byReference");
+    public final Start callStatement$using$byReference = Start.on(getNamespace(), "byReference");
     
-    public ParserCombinator callStatementBody$byReference() {
-      if (callStatementBody$byReferenceParser == null) {
+    public ParserCombinator callStatement$using$byReference() {
+      if (callStatement$using$byReferenceParser == null) {
         FutureParser future = scoped("byReference", PUBLIC, true);
-        callStatementBody$byReferenceParser = future;
+        callStatement$using$byReferenceParser = future;
         future.setParser(
           sequence(
             optional(
@@ -406,29 +278,29 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
             ),
             plus(
               choice(
-                modifier(),
-                arg()
+                callStatement$using$modifier(),
+                callStatement$using$arg()
               )
             )
           )
         );
       }
     
-      return callStatementBody$byReferenceParser;
+      return callStatement$using$byReferenceParser;
     }
     
     // ========================================================
     // byContent
     // ........................................................
     
-    private ParserCombinator callStatementBody$byContentParser = null;
+    private ParserCombinator callStatement$using$byContentParser = null;
     
-    public final Start callStatementBody$byContent = Start.on(getNamespace(), "byContent");
+    public final Start callStatement$using$byContent = Start.on(getNamespace(), "byContent");
     
-    public ParserCombinator callStatementBody$byContent() {
-      if (callStatementBody$byContentParser == null) {
+    public ParserCombinator callStatement$using$byContent() {
+      if (callStatement$using$byContentParser == null) {
         FutureParser future = scoped("byContent", PUBLIC, true);
-        callStatementBody$byContentParser = future;
+        callStatement$using$byContentParser = future;
         future.setParser(
           sequence(
             optional(
@@ -437,29 +309,29 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
             keyword("CONTENT"),
             plus(
               choice(
-                modifier(),
-                arg()
+                callStatement$using$modifier(),
+                callStatement$using$arg()
               )
             )
           )
         );
       }
     
-      return callStatementBody$byContentParser;
+      return callStatement$using$byContentParser;
     }
     
     // ========================================================
     // byValue
     // ........................................................
     
-    private ParserCombinator callStatementBody$byValueParser = null;
+    private ParserCombinator callStatement$using$byValueParser = null;
     
-    public final Start callStatementBody$byValue = Start.on(getNamespace(), "byValue");
+    public final Start callStatement$using$byValue = Start.on(getNamespace(), "byValue");
     
-    public ParserCombinator callStatementBody$byValue() {
-      if (callStatementBody$byValueParser == null) {
+    public ParserCombinator callStatement$using$byValue() {
+      if (callStatement$using$byValueParser == null) {
         FutureParser future = scoped("byValue", PUBLIC, true);
-        callStatementBody$byValueParser = future;
+        callStatement$using$byValueParser = future;
         future.setParser(
           sequence(
             optional(
@@ -468,101 +340,143 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
             keyword("VALUE"),
             plus(
               choice(
-                modifier(),
-                arg()
+                callStatement$using$modifier(),
+                callStatement$using$arg()
               )
             )
           )
         );
       }
     
-      return callStatementBody$byValueParser;
+      return callStatement$using$byValueParser;
     }
     
     // ========================================================
-    // onOverflowStatement
+    // modifier
     // ........................................................
     
-    private ParserCombinator callStatementBody$onOverflowStatementParser = null;
+    private ParserCombinator callStatement$using$modifierParser = null;
     
-    public final Start callStatementBody$onOverflowStatement = Start.on(getNamespace(), "onOverflowStatement");
+    public final Start callStatement$using$modifier = Start.on(getNamespace(), "modifier");
     
-    public ParserCombinator callStatementBody$onOverflowStatement() {
-      if (callStatementBody$onOverflowStatementParser == null) {
-        FutureParser future = scoped("onOverflowStatement", PUBLIC, true);
-        callStatementBody$onOverflowStatementParser = future;
+    public ParserCombinator callStatement$using$modifier() {
+      if (callStatement$using$modifierParser == null) {
+        FutureParser future = scoped("modifier", PUBLIC, true);
+        callStatement$using$modifierParser = future;
         future.setParser(
-          star(
-            statement()
+          choice(
+            as("unsigned",
+              keyword("UNSIGNED")
+            ),
+            callStatement$using$modifier$sizeIs()
           )
         );
       }
     
-      return callStatementBody$onOverflowStatementParser;
+      return callStatement$using$modifierParser;
     }
     
     // ========================================================
-    // onExceptionStatement
+    // sizeIs
     // ........................................................
     
-    private ParserCombinator callStatementBody$onExceptionStatementParser = null;
+    private ParserCombinator callStatement$using$modifier$sizeIsParser = null;
     
-    public final Start callStatementBody$onExceptionStatement = Start.on(getNamespace(), "onExceptionStatement");
+    public final Start callStatement$using$modifier$sizeIs = Start.on(getNamespace(), "sizeIs");
     
-    public ParserCombinator callStatementBody$onExceptionStatement() {
-      if (callStatementBody$onExceptionStatementParser == null) {
-        FutureParser future = scoped("onExceptionStatement", PUBLIC, true);
-        callStatementBody$onExceptionStatementParser = future;
+    public ParserCombinator callStatement$using$modifier$sizeIs() {
+      if (callStatement$using$modifier$sizeIsParser == null) {
+        FutureParser future = scoped("sizeIs", PUBLIC, true);
+        callStatement$using$modifier$sizeIsParser = future;
         future.setParser(
-          star(
-            statement()
+          sequence(
+            keyword("SIZE"),
+            optional(
+              keyword("IS")
+            ),
+            choice(
+              keyword("AUTO"),
+              keyword("DEFAULT"),
+              integer()
+            )
           )
         );
       }
     
-      return callStatementBody$onExceptionStatementParser;
+      return callStatement$using$modifier$sizeIsParser;
     }
     
     // ========================================================
-    // notOnExceptionStatement
+    // arg
     // ........................................................
     
-    private ParserCombinator callStatementBody$notOnExceptionStatementParser = null;
+    private ParserCombinator callStatement$using$argParser = null;
     
-    public final Start callStatementBody$notOnExceptionStatement = Start.on(getNamespace(), "notOnExceptionStatement");
+    public final Start callStatement$using$arg = Start.on(getNamespace(), "arg");
     
-    public ParserCombinator callStatementBody$notOnExceptionStatement() {
-      if (callStatementBody$notOnExceptionStatementParser == null) {
-        FutureParser future = scoped("notOnExceptionStatement", PUBLIC, true);
-        callStatementBody$notOnExceptionStatementParser = future;
+    public ParserCombinator callStatement$using$arg() {
+      if (callStatement$using$argParser == null) {
+        FutureParser future = scoped("arg", PUBLIC, true);
+        callStatement$using$argParser = future;
         future.setParser(
-          star(
-            statement()
+          choice(
+            addressOf(),
+            lengthOf(),
+            as("omitted",
+              keyword("OMITTED")
+            ),
+            sequence(
+              identifier(),
+              not(
+                moreArithmeticOp()
+              )
+            ),
+            sequence(
+              literal(),
+              not(
+                moreArithmeticOp()
+              )
+            ),
+            arithmeticExpression()
           )
         );
       }
     
-      return callStatementBody$notOnExceptionStatementParser;
+      return callStatement$using$argParser;
     }
     
     // ========================================================
-    // endCall
+    // giving
     // ........................................................
     
-    private ParserCombinator callStatementBody$endCallParser = null;
+    private ParserCombinator callStatement$givingParser = null;
     
-    public final Start callStatementBody$endCall = Start.on(getNamespace(), "endCall");
+    public final Start callStatement$giving = Start.on(getNamespace(), "giving");
     
-    public ParserCombinator callStatementBody$endCall() {
-      if (callStatementBody$endCallParser == null) {
-        FutureParser future = scoped("endCall", PUBLIC, true);
-        callStatementBody$endCallParser = future;
+    public ParserCombinator callStatement$giving() {
+      if (callStatement$givingParser == null) {
+        FutureParser future = scoped("giving", PUBLIC, true);
+        callStatement$givingParser = future;
         future.setParser(
-          keyword("END-CALL")
+          sequence(
+            choice(
+              keyword("GIVING"),
+              keyword("RETURNING")
+            ),
+            choice(
+              addressOf(),
+              sequence(
+                optional(
+                  keyword("INTO")
+                ),
+                identifier()
+              )
+            )
+          )
         );
       }
     
-      return callStatementBody$endCallParser;
+      return callStatement$givingParser;
     }
     
     // ========================================================
@@ -579,63 +493,73 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
         programDefinitionParser = future;
         future.setParser(
           sequence(
-            programDefinitionBody(),
-            literal(".")
+            notEmpty(
+              sequence(
+                optional(
+                  as("identificationDivision",
+                    notEmpty(
+                      sequence(
+                        optional(
+                          as("header",
+                            sequence(
+                              choice(
+                                keyword("ID"),
+                                keyword("IDENTIFICATION")
+                              ),
+                              keyword("DIVISION"),
+                              literal(".")
+                            )
+                          )
+                        ),
+                        optional(
+                          programIdParagraph()
+                        ),
+                        optional(
+                          replaceStatement()
+                        ),
+                        optional(
+                          optionsParagraph()
+                        ),
+                        optional(
+                          metadata()
+                        )
+                      )
+                    )
+                  )
+                ),
+                optional(
+                  environmentDivision()
+                ),
+                optional(
+                  dataDivision()
+                ),
+                optional(
+                  sequence(
+                    procedureDivision(),
+                    star(
+                      as("sourceUnit",
+                        programDefinition()
+                      )
+                    )
+                  )
+                )
+              )
+            ),
+            optional(
+              sequence(
+                keyword("END"),
+                keyword("PROGRAM"),
+                optional(
+                  programName()
+                ),
+                literal(".")
+              )
+            )
           )
         );
       }
     
       return programDefinitionParser;
-    }
-    
-    // ========================================================
-    // programDefinitionBody
-    // ........................................................
-    
-    private ParserCombinator programDefinitionBodyParser = null;
-    
-    protected final Start programDefinitionBody = Start.on(getNamespace(), "programDefinitionBody");
-    
-    protected ParserCombinator programDefinitionBody() {
-      if (programDefinitionBodyParser == null) {
-        FutureParser future = scoped("programDefinitionBody", PRIVATE, true);
-        programDefinitionBodyParser = future;
-        future.setParser(
-          sequence(
-            as("identificationDivision",
-              sequence(
-                optional(
-                  as("header",
-                    sequence(
-                      choice(
-                        keyword("ID"),
-                        keyword("IDENTIFICATION")
-                      ),
-                      keyword("DIVISION"),
-                      literal(".")
-                    )
-                  )
-                ),
-                programIdParagraph()
-              )
-            ),
-            optional(
-              environmentDivision()
-            ),
-            optional(
-              dataDivision()
-            ),
-            optional(
-              procedureDivision()
-            ),
-            keyword("END"),
-            keyword("PROGRAM"),
-            programName()
-          )
-        );
-      }
-    
-      return programDefinitionBodyParser;
     }
     
     // ========================================================
@@ -1413,431 +1337,6 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
     }
     
     // ========================================================
-    // functionName
-    // ........................................................
-    
-    private ParserCombinator functionNameParser = null;
-    
-    public final Start functionName = Start.on(getNamespace(), "functionName");
-    
-    public ParserCombinator functionName() {
-      if (functionNameParser == null) {
-        FutureParser future = scoped("functionName", PUBLIC, true);
-        functionNameParser = future;
-        future.setParser(
-          justAName()
-        );
-      }
-    
-      return functionNameParser;
-    }
-    
-    // ========================================================
-    // commonName
-    // ........................................................
-    
-    private ParserCombinator commonNameParser = null;
-    
-    public final Start commonName = Start.on(getNamespace(), "commonName");
-    
-    public ParserCombinator commonName() {
-      if (commonNameParser == null) {
-        FutureParser future = scoped("commonName", PUBLIC, true);
-        commonNameParser = future;
-        future.setParser(
-          justAName()
-        );
-      }
-    
-      return commonNameParser;
-    }
-    
-    // ========================================================
-    // textName
-    // ........................................................
-    
-    private ParserCombinator textNameParser = null;
-    
-    public final Start textName = Start.on(getNamespace(), "textName");
-    
-    public ParserCombinator textName() {
-      if (textNameParser == null) {
-        FutureParser future = scoped("textName", PUBLIC, true);
-        textNameParser = future;
-        future.setParser(
-          justAName()
-        );
-      }
-    
-      return textNameParser;
-    }
-    
-    // ========================================================
-    // libraryName
-    // ........................................................
-    
-    private ParserCombinator libraryNameParser = null;
-    
-    public final Start libraryName = Start.on(getNamespace(), "libraryName");
-    
-    public ParserCombinator libraryName() {
-      if (libraryNameParser == null) {
-        FutureParser future = scoped("libraryName", PUBLIC, true);
-        libraryNameParser = future;
-        future.setParser(
-          justAName()
-        );
-      }
-    
-      return libraryNameParser;
-    }
-    
-    // ========================================================
-    // dataName
-    // ........................................................
-    
-    private ParserCombinator dataNameParser = null;
-    
-    public final Start dataName = Start.on(getNamespace(), "dataName");
-    
-    public ParserCombinator dataName() {
-      if (dataNameParser == null) {
-        FutureParser future = scoped("dataName", PUBLIC, true);
-        dataNameParser = future;
-        future.setParser(
-          justAName()
-        );
-      }
-    
-      return dataNameParser;
-    }
-    
-    // ========================================================
-    // fileName
-    // ........................................................
-    
-    private ParserCombinator fileNameParser = null;
-    
-    public final Start fileName = Start.on(getNamespace(), "fileName");
-    
-    public ParserCombinator fileName() {
-      if (fileNameParser == null) {
-        FutureParser future = scoped("fileName", PUBLIC, true);
-        fileNameParser = future;
-        future.setParser(
-          choice(
-            alphanumeric(),
-            justAName()
-          )
-        );
-      }
-    
-      return fileNameParser;
-    }
-    
-    // ========================================================
-    // literal
-    // ........................................................
-    
-    private ParserCombinator literalParser = null;
-    
-    public final Start literal = Start.on(getNamespace(), "literal");
-    
-    public ParserCombinator literal() {
-      if (literalParser == null) {
-        FutureParser future = scoped("literal", PUBLIC, true);
-        literalParser = future;
-        future.setParser(
-          choice(
-            numericLiteral(),
-            alphanumericLiteral()
-          )
-        );
-      }
-    
-      return literalParser;
-    }
-    
-    // ========================================================
-    // numericLiteral
-    // ........................................................
-    
-    private ParserCombinator numericLiteralParser = null;
-    
-    public final Start numericLiteral = Start.on(getNamespace(), "numericLiteral");
-    
-    public ParserCombinator numericLiteral() {
-      if (numericLiteralParser == null) {
-        FutureParser future = scoped("numericLiteral", PUBLIC, true);
-        numericLiteralParser = future;
-        future.setParser(
-          choice(
-            integerLiteral(),
-            decimalLiteral()
-          )
-        );
-      }
-    
-      return numericLiteralParser;
-    }
-    
-    // ========================================================
-    // integerLiteral
-    // ........................................................
-    
-    private ParserCombinator integerLiteralParser = null;
-    
-    public final Start integerLiteral = Start.on(getNamespace(), "integerLiteral");
-    
-    public ParserCombinator integerLiteral() {
-      if (integerLiteralParser == null) {
-        FutureParser future = scoped("integerLiteral", PUBLIC, true);
-        integerLiteralParser = future;
-        future.setParser(
-          choice(
-            sequence(
-              literal("+"),
-              opt(NOSKIP,
-                uintgr()
-              )
-            ),
-            sequence(
-              literal("-"),
-              opt(NOSKIP,
-                uintgr()
-              )
-            ),
-            uintgr()
-          )
-        );
-      }
-    
-      return integerLiteralParser;
-    }
-    
-    // ========================================================
-    // decimalLiteral
-    // ........................................................
-    
-    private ParserCombinator decimalLiteralParser = null;
-    
-    public final Start decimalLiteral = Start.on(getNamespace(), "decimalLiteral");
-    
-    public ParserCombinator decimalLiteral() {
-      if (decimalLiteralParser == null) {
-        FutureParser future = scoped("decimalLiteral", PUBLIC, true);
-        decimalLiteralParser = future;
-        future.setParser(
-          choice(
-            sequence(
-              choice(
-                literal("+"),
-                literal("-")
-              ),
-              opt(NOSKIP,
-                unsigned_decimal()
-              )
-            ),
-            unsigned_decimal()
-          )
-        );
-      }
-    
-      return decimalLiteralParser;
-    }
-    
-    // ========================================================
-    // alphanumericLiteral
-    // ........................................................
-    
-    private ParserCombinator alphanumericLiteralParser = null;
-    
-    public final Start alphanumericLiteral = Start.on(getNamespace(), "alphanumericLiteral");
-    
-    public ParserCombinator alphanumericLiteral() {
-      if (alphanumericLiteralParser == null) {
-        FutureParser future = scoped("alphanumericLiteral", PUBLIC, true);
-        alphanumericLiteralParser = future;
-        future.setParser(
-          choice(
-            sequence(
-              literal("X"),
-              opt(NOSKIP,
-                str()
-              )
-            ),
-            sequence(
-              literal("N"),
-              opt(NOSKIP,
-                str()
-              )
-            ),
-            str()
-          )
-        );
-      }
-    
-      return alphanumericLiteralParser;
-    }
-    
-    // ========================================================
-    // pseudoLiteral
-    // ........................................................
-    
-    private ParserCombinator pseudoLiteralParser = null;
-    
-    public final Start pseudoLiteral = Start.on(getNamespace(), "pseudoLiteral");
-    
-    public ParserCombinator pseudoLiteral() {
-      if (pseudoLiteralParser == null) {
-        FutureParser future = scoped("pseudoLiteral", PUBLIC, true);
-        pseudoLiteralParser = future;
-        future.setParser(
-          sequence(
-            sequence(
-              literal("="),
-              opt(NOSKIP,
-                literal("=")
-              )
-            ),
-            upto(
-              star(
-                any()
-              ),
-              // Closure:
-              sequence(
-                literal("="),
-                opt(NOSKIP,
-                  sequence(
-                    literal("="),
-                    not(
-                      literal("=")
-                    )
-                  )
-                )
-              )
-            ),
-            sequence(
-              literal("="),
-              opt(NOSKIP,
-                literal("=")
-              )
-            )
-          )
-        );
-      }
-    
-      return pseudoLiteralParser;
-    }
-    
-    // ========================================================
-    // str
-    // ........................................................
-    
-    private ParserCombinator strParser = null;
-    
-    public final Start str = Start.on(getNamespace(), "str");
-    
-    public ParserCombinator str() {
-      if (strParser == null) {
-        FutureParser future = scoped("str", PUBLIC, true);
-        strParser = future;
-        future.setParser(
-          sequence(
-            sequence(
-              tagged(STRING),
-              any()
-            ),
-            optional(
-              opt(NOSKIP,
-                plus(
-                  sequence(
-                    tagged(STRING),
-                    any()
-                  )
-                )
-              )
-            )
-          )
-        );
-      }
-    
-      return strParser;
-    }
-    
-    // ========================================================
-    // unsigned_decimal
-    // ........................................................
-    
-    private ParserCombinator unsigned_decimalParser = null;
-    
-    public final Start unsigned_decimal = Start.on(getNamespace(), "unsigned_decimal");
-    
-    public ParserCombinator unsigned_decimal() {
-      if (unsigned_decimalParser == null) {
-        FutureParser future = scoped("unsigned_decimal", PUBLIC, true);
-        unsigned_decimalParser = future;
-        future.setParser(
-          choice(
-            sequence(
-              uintgr(),
-              opt(NOSKIP,
-                sequence(
-                  choice(
-                    literal(","),
-                    literal(".")
-                  ),
-                  uintgr()
-                )
-              )
-            ),
-            sequence(
-              literal("."),
-              opt(NOSKIP,
-                uintgr()
-              )
-            )
-          )
-        );
-      }
-    
-      return unsigned_decimalParser;
-    }
-    
-    // ========================================================
-    // uintgr
-    // ........................................................
-    
-    private ParserCombinator uintgrParser = null;
-    
-    public final Start uintgr = Start.on(getNamespace(), "uintgr");
-    
-    public ParserCombinator uintgr() {
-      if (uintgrParser == null) {
-        FutureParser future = scoped("uintgr", PUBLIC, true);
-        uintgrParser = future;
-        future.setParser(
-          sequence(
-            tagged(NUMBER),
-            any(),
-            optional(
-              opt(NOSKIP,
-                plus(
-                  sequence(
-                    tagged(NUMBER),
-                    any()
-                  )
-                )
-              )
-            )
-          )
-        );
-      }
-    
-      return uintgrParser;
-    }
-    
-    // ========================================================
     // levelNumber
     // ........................................................
     
@@ -2459,6 +1958,575 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
       }
     
       return anyWhitespaceParser;
+    }
+    
+    // ========================================================
+    // somethingFollowingAStatement
+    // ........................................................
+    
+    private ParserCombinator somethingFollowingAStatementParser = null;
+    
+    public final Start somethingFollowingAStatement = Start.on(getNamespace(), "somethingFollowingAStatement");
+    
+    public ParserCombinator somethingFollowingAStatement() {
+      if (somethingFollowingAStatementParser == null) {
+        FutureParser future = scoped("somethingFollowingAStatement", PUBLIC, true);
+        somethingFollowingAStatementParser = future;
+        future.setParser(
+          choice(
+            literal("."),
+            anyStatement(),
+            anyParagraph(),
+            anySection(),
+            anyDivision(),
+            anyLine()
+          )
+        );
+      }
+    
+      return somethingFollowingAStatementParser;
+    }
+    
+    // ========================================================
+    // identifier
+    // ........................................................
+    
+    private ParserCombinator identifierParser = null;
+    
+    public final Start identifier = Start.on(getNamespace(), "identifier");
+    
+    public ParserCombinator identifier() {
+      if (identifierParser == null) {
+        FutureParser future = scoped("identifier", PUBLIC, true);
+        identifierParser = future;
+        future.setParser(
+          choice(
+            qualifiedDataName(),
+            justAName()
+          )
+        );
+      }
+    
+      return identifierParser;
+    }
+    
+    // ========================================================
+    // qualifiedDataName
+    // ........................................................
+    
+    private ParserCombinator qualifiedDataNameParser = null;
+    
+    public final Start qualifiedDataName = Start.on(getNamespace(), "qualifiedDataName");
+    
+    public ParserCombinator qualifiedDataName() {
+      if (qualifiedDataNameParser == null) {
+        FutureParser future = scoped("qualifiedDataName", PUBLIC, true);
+        qualifiedDataNameParser = future;
+        future.setParser(
+          sequence(
+            dataName(),
+            optional(
+              qualifier()
+            ),
+            optional(
+              sequence(
+                literal("("),
+                plus(
+                  subscript()
+                ),
+                literal(")")
+              )
+            )
+          )
+        );
+      }
+    
+      return qualifiedDataNameParser;
+    }
+    
+    // ========================================================
+    // qualifier
+    // ........................................................
+    
+    private ParserCombinator qualifierParser = null;
+    
+    public final Start qualifier = Start.on(getNamespace(), "qualifier");
+    
+    public ParserCombinator qualifier() {
+      if (qualifierParser == null) {
+        FutureParser future = scoped("qualifier", PUBLIC, true);
+        qualifierParser = future;
+        future.setParser(
+          plus(
+            sequence(
+              choice(
+                keyword("IN"),
+                keyword("OF")
+              ),
+              dataName()
+            )
+          )
+        );
+      }
+    
+      return qualifierParser;
+    }
+    
+    // ========================================================
+    // subscript
+    // ........................................................
+    
+    private ParserCombinator subscriptParser = null;
+    
+    public final Start subscript = Start.on(getNamespace(), "subscript");
+    
+    public ParserCombinator subscript() {
+      if (subscriptParser == null) {
+        FutureParser future = scoped("subscript", PUBLIC, true);
+        subscriptParser = future;
+        future.setParser(
+          choice(
+            literal(),
+            dataName(),
+            cobolWord()
+          )
+        );
+      }
+    
+      return subscriptParser;
+    }
+    
+    // ========================================================
+    // mnemonicName
+    // ........................................................
+    
+    private ParserCombinator mnemonicNameParser = null;
+    
+    public final Start mnemonicName = Start.on(getNamespace(), "mnemonicName");
+    
+    public ParserCombinator mnemonicName() {
+      if (mnemonicNameParser == null) {
+        FutureParser future = scoped("mnemonicName", PUBLIC, true);
+        mnemonicNameParser = future;
+        future.setParser(
+          identifier()
+        );
+      }
+    
+      return mnemonicNameParser;
+    }
+    
+    // ========================================================
+    // addressOf
+    // ........................................................
+    
+    private ParserCombinator addressOfParser = null;
+    
+    public final Start addressOf = Start.on(getNamespace(), "addressOf");
+    
+    public ParserCombinator addressOf() {
+      if (addressOfParser == null) {
+        FutureParser future = scoped("addressOf", PUBLIC, true);
+        addressOfParser = future;
+        future.setParser(
+          sequence(
+            keyword("ADDRESS"),
+            keyword("OF"),
+            choice(
+              identifier(),
+              literal()
+            )
+          )
+        );
+      }
+    
+      return addressOfParser;
+    }
+    
+    // ========================================================
+    // lengthOf
+    // ........................................................
+    
+    private ParserCombinator lengthOfParser = null;
+    
+    public final Start lengthOf = Start.on(getNamespace(), "lengthOf");
+    
+    public ParserCombinator lengthOf() {
+      if (lengthOfParser == null) {
+        FutureParser future = scoped("lengthOf", PUBLIC, true);
+        lengthOfParser = future;
+        future.setParser(
+          sequence(
+            keyword("LENGTH"),
+            keyword("OF"),
+            choice(
+              identifier(),
+              literal()
+            )
+          )
+        );
+      }
+    
+      return lengthOfParser;
+    }
+    
+    // ========================================================
+    // arithmeticExpression
+    // ........................................................
+    
+    private ParserCombinator arithmeticExpressionParser = null;
+    
+    public final Start arithmeticExpression = Start.on(getNamespace(), "arithmeticExpression");
+    
+    public ParserCombinator arithmeticExpression() {
+      if (arithmeticExpressionParser == null) {
+        FutureParser future = scoped("arithmeticExpression", PUBLIC, true);
+        arithmeticExpressionParser = future;
+        future.setParser(
+          choice(
+            literal(),
+            dataName(),
+            cobolWord()
+          )
+        );
+      }
+    
+      return arithmeticExpressionParser;
+    }
+    
+    // ========================================================
+    // integer
+    // ........................................................
+    
+    private ParserCombinator integerParser = null;
+    
+    public final Start integer = Start.on(getNamespace(), "integer");
+    
+    public ParserCombinator integer() {
+      if (integerParser == null) {
+        FutureParser future = scoped("integer", PUBLIC, true);
+        integerParser = future;
+        future.setParser(
+          uintgr()
+        );
+      }
+    
+      return integerParser;
+    }
+    
+    // ========================================================
+    // onOverflow
+    // ........................................................
+    
+    private ParserCombinator onOverflowParser = null;
+    
+    public final Start onOverflow = Start.on(getNamespace(), "onOverflow");
+    
+    public ParserCombinator onOverflow() {
+      if (onOverflowParser == null) {
+        FutureParser future = scoped("onOverflow", PUBLIC, true);
+        onOverflowParser = future;
+        future.setParser(
+          sequence(
+            optional(
+              keyword("ON")
+            ),
+            keyword("OVERFLOW"),
+            star(
+              statement()
+            )
+          )
+        );
+      }
+    
+      return onOverflowParser;
+    }
+    
+    // ========================================================
+    // onException
+    // ........................................................
+    
+    private ParserCombinator onExceptionParser = null;
+    
+    public final Start onException = Start.on(getNamespace(), "onException");
+    
+    public ParserCombinator onException() {
+      if (onExceptionParser == null) {
+        FutureParser future = scoped("onException", PUBLIC, true);
+        onExceptionParser = future;
+        future.setParser(
+          sequence(
+            optional(
+              keyword("ON")
+            ),
+            keyword("EXCEPTION"),
+            star(
+              statement()
+            )
+          )
+        );
+      }
+    
+      return onExceptionParser;
+    }
+    
+    // ========================================================
+    // notOnException
+    // ........................................................
+    
+    private ParserCombinator notOnExceptionParser = null;
+    
+    public final Start notOnException = Start.on(getNamespace(), "notOnException");
+    
+    public ParserCombinator notOnException() {
+      if (notOnExceptionParser == null) {
+        FutureParser future = scoped("notOnException", PUBLIC, true);
+        notOnExceptionParser = future;
+        future.setParser(
+          sequence(
+            keyword("NOT"),
+            optional(
+              keyword("ON")
+            ),
+            keyword("EXCEPTION"),
+            star(
+              statement()
+            )
+          )
+        );
+      }
+    
+      return notOnExceptionParser;
+    }
+    
+    // ========================================================
+    // replaceStatement
+    // ........................................................
+    
+    private ParserCombinator replaceStatementParser = null;
+    
+    public final Start replaceStatement = Start.on(getNamespace(), "replaceStatement");
+    
+    public ParserCombinator replaceStatement() {
+      if (replaceStatementParser == null) {
+        FutureParser future = scoped("replaceStatement", PUBLIC, true);
+        replaceStatementParser = future;
+        future.setParser(
+          sequence(
+            keyword("REPLACE"),
+            choice(
+              replaceStatement$replacing(),
+              replaceStatement$off()
+            ),
+            literal(".")
+          )
+        );
+      }
+    
+      return replaceStatementParser;
+    }
+    
+    // ========================================================
+    // replacing
+    // ........................................................
+    
+    private ParserCombinator replaceStatement$replacingParser = null;
+    
+    public final Start replaceStatement$replacing = Start.on(getNamespace(), "replacing");
+    
+    public ParserCombinator replaceStatement$replacing() {
+      if (replaceStatement$replacingParser == null) {
+        FutureParser future = scoped("replacing", PUBLIC, true);
+        replaceStatement$replacingParser = future;
+        future.setParser(
+          sequence(
+            optional(
+              as("also",
+                keyword("ALSO")
+              )
+            ),
+            plus(
+              replacementInstruction()
+            )
+          )
+        );
+      }
+    
+      return replaceStatement$replacingParser;
+    }
+    
+    // ========================================================
+    // off
+    // ........................................................
+    
+    private ParserCombinator replaceStatement$offParser = null;
+    
+    public final Start replaceStatement$off = Start.on(getNamespace(), "off");
+    
+    public ParserCombinator replaceStatement$off() {
+      if (replaceStatement$offParser == null) {
+        FutureParser future = scoped("off", PUBLIC, true);
+        replaceStatement$offParser = future;
+        future.setParser(
+          sequence(
+            optional(
+              as("last",
+                keyword("LAST")
+              )
+            ),
+            keyword("OFF")
+          )
+        );
+      }
+    
+      return replaceStatement$offParser;
+    }
+    
+    // ========================================================
+    // optionsParagraph
+    // ........................................................
+    
+    private ParserCombinator optionsParagraphParser = null;
+    
+    public final Start optionsParagraph = Start.on(getNamespace(), "optionsParagraph");
+    
+    public ParserCombinator optionsParagraph() {
+      if (optionsParagraphParser == null) {
+        FutureParser future = scoped("optionsParagraph", PUBLIC, true);
+        optionsParagraphParser = future;
+        future.setParser(
+          sequence(
+            keyword("OPTIONS"),
+            literal("."),
+            star(
+              choice(
+                optionStatement(),
+                copyStatement()
+              )
+            ),
+            optional(
+              literal(".")
+            )
+          )
+        );
+      }
+    
+      return optionsParagraphParser;
+    }
+    
+    // ========================================================
+    // optionStatement
+    // ........................................................
+    
+    private ParserCombinator optionStatementParser = null;
+    
+    public final Start optionStatement = Start.on(getNamespace(), "optionStatement");
+    
+    public ParserCombinator optionStatement() {
+      if (optionStatementParser == null) {
+        FutureParser future = scoped("optionStatement", PUBLIC, true);
+        optionStatementParser = future;
+        future.setParser(
+          plus(
+            choice(
+              anyWord(),
+              anyLiteral(),
+              anySymbol(),
+              anyWhitespace()
+            )
+          )
+        );
+      }
+    
+      return optionStatementParser;
+    }
+    
+    // ========================================================
+    // metadata
+    // ........................................................
+    
+    private ParserCombinator metadataParser = null;
+    
+    public final Start metadata = Start.on(getNamespace(), "metadata");
+    
+    public ParserCombinator metadata() {
+      if (metadataParser == null) {
+        FutureParser future = scoped("metadata", PUBLIC, true);
+        metadataParser = future;
+        future.setParser(
+          sequence(
+            keyword("METADATA"),
+            literal("."),
+            star(
+              choice(
+                metadataStatement(),
+                copyStatement()
+              )
+            ),
+            optional(
+              literal(".")
+            )
+          )
+        );
+      }
+    
+      return metadataParser;
+    }
+    
+    // ========================================================
+    // metadataStatement
+    // ........................................................
+    
+    private ParserCombinator metadataStatementParser = null;
+    
+    public final Start metadataStatement = Start.on(getNamespace(), "metadataStatement");
+    
+    public ParserCombinator metadataStatement() {
+      if (metadataStatementParser == null) {
+        FutureParser future = scoped("metadataStatement", PUBLIC, true);
+        metadataStatementParser = future;
+        future.setParser(
+          plus(
+            choice(
+              anyWord(),
+              anyLiteral(),
+              anySymbol(),
+              anyWhitespace()
+            )
+          )
+        );
+      }
+    
+      return metadataStatementParser;
+    }
+    
+    // ========================================================
+    // sourceUnit
+    // ........................................................
+    
+    private ParserCombinator sourceUnitParser = null;
+    
+    public final Start sourceUnit = Start.on(getNamespace(), "sourceUnit");
+    
+    public ParserCombinator sourceUnit() {
+      if (sourceUnitParser == null) {
+        FutureParser future = scoped("sourceUnit", PUBLIC, true);
+        sourceUnitParser = future;
+        future.setParser(
+          choice(
+            programDefinition(),
+            functionDefinition(),
+            statement(),
+            anyStatement(),
+            anyParagraph(),
+            anySection(),
+            anyDivision(),
+            anyLine()
+          )
+        );
+      }
+    
+      return sourceUnitParser;
     }
     
 }

@@ -32,73 +32,119 @@ end
 
 ## #############################################################################
 ## COPY statements - main dependency source
+## (Inherited from CobolPreprocessingGrammar)
 ## -----------------------------------------------------------------------------
-
-def copyStatement = copyStatementBody . end
-
-private def copyStatementBody =
-    COPY textName [ (OF | IN) libraryName ]
-    [SUPPRESS [PRINTING]]
-    [replacing]
-
-  where def replacing = REPLACING (replacementInstruction)+ end
-end
-
-def replacementInstruction =
-    [leading | trailing] replacementOperand
-    BY replacementOperand
-
-  where def leading  = LEADING   end
-  where def trailing = TRAILING  end
-end
-
-def replacementOperand = 
-    ( pseudoLiteral
-    | literal
-    | cobolWord
-    )
-end
 
 ## #############################################################################
 ## CALL statements - program dependencies
 ## -----------------------------------------------------------------------------
 
-def callStatement = callStatementBody . end
+def callStatement =
+    CALL
+    
+    ( [ programName AS ] NESTED                                   # Format 3
+    |   programName AS   programPrototypeName                     # Format 3
+    | # [MF - CALL statement] The mnenomic name specifies the calling convention.
+      (mnemonicName: identifier) programName
+    | programName                                                 # Format 1, 2
+    )
 
-private def callStatementBody =
-    CALL ( literal | cobolWord )
-    [USING ( byReference | byContent | byValue )+]
-    [returning dataName]
-    [onOverflow onOverflowStatement]
-    [onException onExceptionStatement]
-    [notOnException notOnExceptionStatement]
-    [endCall]
+    [ using  ]
+    [ giving ]
 
-  where def byReference = [[BY] REFERENCE] (modifier | arg)+ end
-  where def byContent = [BY] CONTENT (modifier | arg)+ end
-  where def byValue = [BY] VALUE (modifier | arg)+ end
-  where def onOverflowStatement = ( statement )* end
-  where def onExceptionStatement = ( statement )* end
-  where def notOnExceptionStatement = ( statement )* end
-  where def endCall = END-CALL end
+    [ unknown: --> somethingFollowingAStatement ]
+
+    [ onOverflow                                                  # Format 1
+    | !(onException | notOnException)                             # Format 2, 3
+    ]
+
+    [`end : END-CALL]
+
+  where def programName          =  ( alphanumericLiteral | identifier )  end
+  where def programPrototypeName =  justAName                             end
+
+  where def using =
+      USING ( byReference | byContent | byValue | copyStatement )+
+
+    where def byReference =  [[BY] REFERENCE] (modifier | arg)+  end
+    where def byContent   =   [BY] CONTENT    (modifier | arg)+  end
+    where def byValue     =   [BY] VALUE      (modifier | arg)+  end
+
+    where def modifier =
+        (
+        # [GNU Cobol 2.0], CALL: preceding a literal or identifier.
+          unsigned: UNSIGNED
+        
+        # [MF - CALL Statement]: following an integer.
+        # [IBM ILE CALL Statement]: following a float or an integer.
+        # [GNU Cobol 2.0], CALL: preceding a literal or identifier.
+        | sizeIs
+        )
+
+      where def sizeIs =
+          SIZE [IS]
+          ( AUTO | DEFAULT                  # GNU Cobol
+          | integer                         # GNU Cobol, IBM
+          )
+      end
+    end
+
+    where def arg =
+        ( addressOf                       # [IBM Cobol zOS 4.2], CALL statement
+        | lengthOf                        # [IBM Cobol zOS 4.2], CALL statement
+        | omitted: OMITTED
+        | identifier (%not moreArithmeticOp)
+        | literal    (%not moreArithmeticOp)
+        | arithmeticExpression
+        )
+    end
+  end
+  
+  where def giving =
+      ( GIVING | RETURNING ) 
+      ( addressOf | [INTO] identifier )
+  end
 end
 
 ## #############################################################################
 ## Program definitions - what we're calling
 ## -----------------------------------------------------------------------------
 
-def programDefinition = programDefinitionBody . end
-
-private def programDefinitionBody =
-    ( identificationDivision :
-        [header: (ID | IDENTIFICATION) DIVISION .]
-        programIdParagraph
-    ) 
+def programDefinition =
+    # In Micro Focus Cobol all parts are optional (cfr. [MF - Compilation 
+    # Groups]), which means this grammar rule could match empty inputs.
+    # Allowing that would just cause trouble, so we add an extra restriction
+    # on this match to make sure we at least consumed something.
+    %notempty (
+        [ identificationDivision : %notempty (
+            [header: (ID | IDENTIFICATION) DIVISION .]
+            
+            # Micro Focus makes the program-id-paragraph optional, which is
+            # why we need the '%notempty' restriction above.
+            # Cfr. [MF - Compilation Groups]
+            [programIdParagraph]
+            
+            [replaceStatement]                       # SM208A.CBL
+            [optionsParagraph]
+            [metadata]                               # Found in the testsuite.
+        )]
+        
+        [environmentDivision]
+        [dataDivision]
+        [procedureDivision (sourceUnit : programDefinition)*]
+    )
     
-    [environmentDivision]
-    [dataDivision]
-    [procedureDivision]
-    END PROGRAM programName
+    # The end marker shouldn't count towards the contents of the program
+    # definition. If it would then it would get caught up in the recursive call
+    # above as an empty program.
+    [ END PROGRAM
+      # Given that the program-id-paragraph may be optional in Micro Focus you
+      # don't always have a program name to mention here. I have seen it being
+      # omitted in actual code, though I can't find any documentation (not even
+      # from Micro Focus) which states that it is indeed optional...
+      [programName]
+      .
+    ]
 end
 
 def functionDefinition = functionDefinitionBody . end
@@ -282,83 +328,10 @@ def booleanHexadecimal =
     'BX' ++ str
 end
 
-def functionName = 
-    justAName
-end
+# Name definitions inherited from CobolPreprocessingGrammar
+# (textName, libraryName, etc. are already defined)
 
-def commonName = 
-    justAName
-end
-
-def textName = 
-    justAName
-end
-
-def libraryName = 
-    justAName
-end
-
-def dataName = 
-    justAName
-end
-
-def fileName = 
-    ( alphanumeric
-    | justAName
-    )
-end
-
-def literal =
-    ( numericLiteral
-    | alphanumericLiteral
-    )
-end
-
-def numericLiteral =
-    ( integerLiteral
-    | decimalLiteral
-    )
-end
-
-def integerLiteral =
-    ( '+' ++ uintgr
-    | '-' ++ uintgr
-    | uintgr
-    )
-end
-
-def decimalLiteral =
-    ( ('+' | '-') ++ unsigned_decimal
-    | unsigned_decimal
-    )
-end
-
-def alphanumericLiteral =
-    ( 'X' ++ str
-    | 'N' ++ str
-    | str
-    )
-end
-
-def pseudoLiteral =
-    ('=' ++ '=') 
-    ((_)*) %upto {'=' ++ ('=' %not '=')}
-    ('=' ++ '=') 
-end
-
-def str = 
-    (@STRING _) [++ ((@STRING _)+)]
-end
-
-def unsigned_decimal =
-    ( uintgr ++ ( (',' | '.') uintgr )
-    | '.' ++ uintgr
-    )
-end
-
-def uintgr = 
-    @NUMBER _ [++ ((@NUMBER _)+)]
-end
+# Literal definitions inherited from CobolPreprocessingGrammar
 
 ## #############################################################################
 ## Additional elements
@@ -494,4 +467,111 @@ end
 
 def anyWhitespace = 
     @WHITESPACE _
+end
+
+# Error recovery for malformed statements
+def somethingFollowingAStatement =
+    ( .
+    | anyStatement
+    | anyParagraph
+    | anySection
+    | anyDivision
+    | anyLine
+    )
+end
+
+# Additional definitions for comprehensive CALL statement
+def identifier =
+    ( qualifiedDataName
+    | justAName
+    )
+end
+
+def qualifiedDataName =
+    dataName [qualifier] ['(' (subscript)+ ')']
+end
+
+def qualifier =
+    ((IN | OF) dataName)+
+end
+
+def subscript =
+    ( literal | dataName | cobolWord )
+end
+
+def mnemonicName =
+    identifier
+end
+
+def addressOf =
+    ADDRESS OF (identifier | literal)
+end
+
+def lengthOf =
+    LENGTH OF (identifier | literal)
+end
+
+def arithmeticExpression =
+    ( literal | dataName | cobolWord )
+end
+
+def integer =
+    uintgr
+end
+
+def onOverflow =
+    [ON] OVERFLOW ( statement )*
+end
+
+def onException =
+    [ON] EXCEPTION ( statement )*
+end
+
+def notOnException =
+    NOT [ON] EXCEPTION ( statement )*
+end
+
+# Additional identification division elements
+def replaceStatement =
+    REPLACE (replacing | off) .
+
+  where def replacing = [also: ALSO] (replacementInstruction)+ end
+  where def off       = [last: LAST] OFF                        end
+end
+
+def optionsParagraph =
+    OPTIONS .
+    ( optionStatement
+    | copyStatement
+    )*
+    [.]
+end
+
+def optionStatement =
+    ( anyWord | anyLiteral | anySymbol | anyWhitespace )+
+end
+
+def metadata =
+    METADATA .
+    ( metadataStatement
+    | copyStatement
+    )*
+    [.]
+end
+
+def metadataStatement =
+    ( anyWord | anyLiteral | anySymbol | anyWhitespace )+
+end
+
+# Simplified sourceUnit for dependency analysis
+def sourceUnit =
+    ( programDefinition
+    | functionDefinition
+    | statement
+    | anyStatement
+    | anyParagraph
+    | anySection
+    | anyDivision
+    | anyLine
+    )
 end
