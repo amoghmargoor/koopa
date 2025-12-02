@@ -153,12 +153,13 @@ private def functionDefinitionBody =
     ( identificationDivision :
         [header: (ID | IDENTIFICATION) DIVISION .]
         functionIdParagraph
+        [optionsParagraph]
     ) 
     
     [environmentDivision]
     [dataDivision]
     [procedureDivision]
-    END FUNCTION functionName
+    END FUNCTION functionName .
 end
 
 ## #############################################################################
@@ -170,7 +171,7 @@ def programIdParagraph =
 end
 
 def functionIdParagraph =
-    FUNCTION-ID . functionName [IS] [commonName] [AS] [commonName]
+    FUNCTION-ID [.] functionName [AS literal] [.]
 end
 
 ## #############################################################################
@@ -329,7 +330,33 @@ def booleanHexadecimal =
 end
 
 # Name definitions inherited from CobolPreprocessingGrammar
-# (textName, libraryName, etc. are already defined)
+# (textName, libraryName are already defined)
+
+# Additional name definitions needed for dependency analysis
+# (functionName, commonName, dataName, fileName are NOT inherited)
+def functionName =
+    justAName
+end
+
+def commonName =
+    justAName
+end
+
+def dataName =
+    justAName
+end
+
+def fileName =
+    ( alphanumeric
+    | justAName
+    )
+end
+
+private def moreArithmeticOp =
+    ( B-AND | B-OR | B-XOR | B-EXOR
+    | '+' | '-' | ('*' ++ '*') | '*' | '/'
+    )
+end
 
 # Literal definitions inherited from CobolPreprocessingGrammar
 
@@ -357,10 +384,6 @@ def valueClause =
     VALUE [IS] literal
 end
 
-def pictureString = 
-    @WORD _
-end
-
 def modifier = 
     (OMITTED | cobolWord)
 end
@@ -371,6 +394,10 @@ end
 
 def usingClause = 
     USING (byReference | byContent | byValue)+
+    
+  where def byReference =  [[BY] REFERENCE] (modifier | arg)+  end
+  where def byContent   =   [BY] CONTENT    (modifier | arg)+  end
+  where def byValue     =   [BY] VALUE      (modifier | arg)+  end
 end
 
 def returningClause = 
@@ -394,7 +421,7 @@ def fileDescriptionClause =
 end
 
 def statement = 
-    ( anyWord | anyLiteral | anySymbol | anyWhitespace )+
+    ( anyWord | anyLiteral | anySeparator | anyWhitespace )+
     ( [.] | [eol] )
 end
 
@@ -406,7 +433,7 @@ end
 def anyStatement =
     ( anyWord
     | anyLiteral
-    | anySymbol
+    | anySeparator
     | anyWhitespace
     )+
     [.]
@@ -416,7 +443,7 @@ end
 def anyParagraph =
     ( anyWord
     | anyLiteral
-    | anySymbol
+    | anySeparator
     | anyWhitespace
     )+
     [.]
@@ -426,7 +453,7 @@ end
 def anySection =
     ( anyWord
     | anyLiteral
-    | anySymbol
+    | anySeparator
     | anyWhitespace
     )+
     [.]
@@ -436,7 +463,7 @@ end
 def anyDivision =
     ( anyWord
     | anyLiteral
-    | anySymbol
+    | anySeparator
     | anyWhitespace
     )+
     [.]
@@ -446,7 +473,7 @@ end
 def anyLine =
     ( anyWord
     | anyLiteral
-    | anySymbol
+    | anySeparator
     | anyWhitespace
     )+
     [eol]
@@ -461,12 +488,16 @@ def anyLiteral =
     (literal | str)
 end
 
-def anySymbol = 
-    @SYMBOL _
+def anySeparator = 
+    @SEPARATOR _
 end
 
 def anyWhitespace = 
     @WHITESPACE _
+end
+
+def eol = 
+    @END_OF_LINE _
 end
 
 # Error recovery for malformed statements
@@ -548,7 +579,7 @@ def optionsParagraph =
 end
 
 def optionStatement =
-    ( anyWord | anyLiteral | anySymbol | anyWhitespace )+
+    ( anyWord | anyLiteral | anySeparator | anyWhitespace )+
 end
 
 def metadata =
@@ -560,7 +591,7 @@ def metadata =
 end
 
 def metadataStatement =
-    ( anyWord | anyLiteral | anySymbol | anyWhitespace )+
+    ( anyWord | anyLiteral | anySeparator | anyWhitespace )+
 end
 
 # Simplified sourceUnit for dependency analysis

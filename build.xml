@@ -27,7 +27,7 @@
 		</copy>
 	</target>
 
-	<target name="run-tests" depends="run-core-tests,run-dsl-tests,run-cics-tests,run-sql-tests,run-cobol-tests,run-cobol-regression-tests">
+	<target name="run-tests" depends="run-core-tests,run-dsl-tests,run-cics-tests,run-sql-tests,run-cobol-tests,run-cobol-dependency-tests,run-cobol-regression-tests">
 	</target>
 
 	<!-- CORE / ISLAND PARSER GENERATOR -->
@@ -376,6 +376,25 @@
 			<test name="koopa.cobol.grammar.test.CobolGrammarTests" />
 			<test name="koopa.cobol.parser.preprocessing.replacing.test.ReplacingPhraseOperandTest" />
 			<test name="koopa.cobol.parser.preprocessing.test.PreprocessingSourceTest" />
+		</junit>
+	</target>
+
+	<target name="run-cobol-dependency-tests">
+		<junit fork="yes" printsummary="yes" haltonfailure="yes" showoutput="yes">
+			<classpath>
+				<pathelement location="build/" />
+				<fileset dir="lib">
+					<include name="*.jar" />
+				</fileset>
+			</classpath>
+
+			<assertions>
+				<enable />
+			</assertions>
+
+			<formatter type="brief" usefile="no" />
+
+			<test name="koopa.cobol.grammar.dependency.test.CobolDependencyFileTest" />
 		</junit>
 	</target>
 

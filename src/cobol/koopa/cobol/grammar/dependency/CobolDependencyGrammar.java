@@ -9,6 +9,11 @@ import static koopa.core.grammars.combinators.Scoped.Visibility.PUBLIC;
 import static koopa.core.grammars.combinators.Scoped.Visibility.PRIVATE;
 import static koopa.core.grammars.combinators.Scoped.Visibility.HIDING;
 
+import static koopa.core.data.tags.SyntacticTag.END_OF_LINE;
+import static koopa.core.data.tags.SyntacticTag.NUMBER;
+import static koopa.core.data.tags.SyntacticTag.SEPARATOR;
+import static koopa.core.data.tags.SyntacticTag.WHITESPACE;
+import static koopa.core.data.tags.SyntacticTag.WORD;
 
 /**
  * <b>This is generated code.<b>
@@ -613,7 +618,10 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
                     )
                   )
                 ),
-                functionIdParagraph()
+                functionIdParagraph(),
+                optional(
+                  optionsParagraph()
+                )
               )
             ),
             optional(
@@ -627,7 +635,8 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
             ),
             keyword("END"),
             keyword("FUNCTION"),
-            functionName()
+            functionName(),
+            literal(".")
           )
         );
       }
@@ -686,19 +695,18 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
         future.setParser(
           sequence(
             keyword("FUNCTION-ID"),
-            literal("."),
+            optional(
+              literal(".")
+            ),
             functionName(),
             optional(
-              keyword("IS")
+              sequence(
+                keyword("AS"),
+                literal()
+              )
             ),
             optional(
-              commonName()
-            ),
-            optional(
-              keyword("AS")
-            ),
-            optional(
-              commonName()
+              literal(".")
             )
           )
         );
@@ -1337,6 +1345,124 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
     }
     
     // ========================================================
+    // functionName
+    // ........................................................
+    
+    private ParserCombinator functionNameParser = null;
+    
+    public final Start functionName = Start.on(getNamespace(), "functionName");
+    
+    public ParserCombinator functionName() {
+      if (functionNameParser == null) {
+        FutureParser future = scoped("functionName", PUBLIC, true);
+        functionNameParser = future;
+        future.setParser(
+          justAName()
+        );
+      }
+    
+      return functionNameParser;
+    }
+    
+    // ========================================================
+    // commonName
+    // ........................................................
+    
+    private ParserCombinator commonNameParser = null;
+    
+    public final Start commonName = Start.on(getNamespace(), "commonName");
+    
+    public ParserCombinator commonName() {
+      if (commonNameParser == null) {
+        FutureParser future = scoped("commonName", PUBLIC, true);
+        commonNameParser = future;
+        future.setParser(
+          justAName()
+        );
+      }
+    
+      return commonNameParser;
+    }
+    
+    // ========================================================
+    // dataName
+    // ........................................................
+    
+    private ParserCombinator dataNameParser = null;
+    
+    public final Start dataName = Start.on(getNamespace(), "dataName");
+    
+    public ParserCombinator dataName() {
+      if (dataNameParser == null) {
+        FutureParser future = scoped("dataName", PUBLIC, true);
+        dataNameParser = future;
+        future.setParser(
+          justAName()
+        );
+      }
+    
+      return dataNameParser;
+    }
+    
+    // ========================================================
+    // fileName
+    // ........................................................
+    
+    private ParserCombinator fileNameParser = null;
+    
+    public final Start fileName = Start.on(getNamespace(), "fileName");
+    
+    public ParserCombinator fileName() {
+      if (fileNameParser == null) {
+        FutureParser future = scoped("fileName", PUBLIC, true);
+        fileNameParser = future;
+        future.setParser(
+          choice(
+            alphanumeric(),
+            justAName()
+          )
+        );
+      }
+    
+      return fileNameParser;
+    }
+    
+    // ========================================================
+    // moreArithmeticOp
+    // ........................................................
+    
+    private ParserCombinator moreArithmeticOpParser = null;
+    
+    protected final Start moreArithmeticOp = Start.on(getNamespace(), "moreArithmeticOp");
+    
+    protected ParserCombinator moreArithmeticOp() {
+      if (moreArithmeticOpParser == null) {
+        FutureParser future = scoped("moreArithmeticOp", PRIVATE, true);
+        moreArithmeticOpParser = future;
+        future.setParser(
+          choice(
+            keyword("B-AND"),
+            keyword("B-OR"),
+            keyword("B-XOR"),
+            keyword("B-EXOR"),
+            literal("+"),
+            literal("-"),
+            sequence(
+              literal("*"),
+              opt(NOSKIP,
+                literal("*")
+              )
+            ),
+            literal("*"),
+            literal("/")
+          )
+        );
+      }
+    
+      return moreArithmeticOpParser;
+    }
+    
+    // ========================================================
     // levelNumber
     // ........................................................
     
@@ -1452,29 +1578,6 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
     }
     
     // ========================================================
-    // pictureString
-    // ........................................................
-    
-    private ParserCombinator pictureStringParser = null;
-    
-    public final Start pictureString = Start.on(getNamespace(), "pictureString");
-    
-    public ParserCombinator pictureString() {
-      if (pictureStringParser == null) {
-        FutureParser future = scoped("pictureString", PUBLIC, true);
-        pictureStringParser = future;
-        future.setParser(
-          sequence(
-            tagged(WORD),
-            any()
-          )
-        );
-      }
-    
-      return pictureStringParser;
-    }
-    
-    // ========================================================
     // modifier
     // ........................................................
     
@@ -1538,9 +1641,9 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
             keyword("USING"),
             plus(
               choice(
-                byReference(),
-                byContent(),
-                byValue()
+                usingClause$byReference(),
+                usingClause$byContent(),
+                usingClause$byValue()
               )
             )
           )
@@ -1548,6 +1651,103 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
       }
     
       return usingClauseParser;
+    }
+    
+    // ========================================================
+    // byReference
+    // ........................................................
+    
+    private ParserCombinator usingClause$byReferenceParser = null;
+    
+    public final Start usingClause$byReference = Start.on(getNamespace(), "byReference");
+    
+    public ParserCombinator usingClause$byReference() {
+      if (usingClause$byReferenceParser == null) {
+        FutureParser future = scoped("byReference", PUBLIC, true);
+        usingClause$byReferenceParser = future;
+        future.setParser(
+          sequence(
+            optional(
+              sequence(
+                optional(
+                  keyword("BY")
+                ),
+                keyword("REFERENCE")
+              )
+            ),
+            plus(
+              choice(
+                modifier(),
+                arg()
+              )
+            )
+          )
+        );
+      }
+    
+      return usingClause$byReferenceParser;
+    }
+    
+    // ========================================================
+    // byContent
+    // ........................................................
+    
+    private ParserCombinator usingClause$byContentParser = null;
+    
+    public final Start usingClause$byContent = Start.on(getNamespace(), "byContent");
+    
+    public ParserCombinator usingClause$byContent() {
+      if (usingClause$byContentParser == null) {
+        FutureParser future = scoped("byContent", PUBLIC, true);
+        usingClause$byContentParser = future;
+        future.setParser(
+          sequence(
+            optional(
+              keyword("BY")
+            ),
+            keyword("CONTENT"),
+            plus(
+              choice(
+                modifier(),
+                arg()
+              )
+            )
+          )
+        );
+      }
+    
+      return usingClause$byContentParser;
+    }
+    
+    // ========================================================
+    // byValue
+    // ........................................................
+    
+    private ParserCombinator usingClause$byValueParser = null;
+    
+    public final Start usingClause$byValue = Start.on(getNamespace(), "byValue");
+    
+    public ParserCombinator usingClause$byValue() {
+      if (usingClause$byValueParser == null) {
+        FutureParser future = scoped("byValue", PUBLIC, true);
+        usingClause$byValueParser = future;
+        future.setParser(
+          sequence(
+            optional(
+              keyword("BY")
+            ),
+            keyword("VALUE"),
+            plus(
+              choice(
+                modifier(),
+                arg()
+              )
+            )
+          )
+        );
+      }
+    
+      return usingClause$byValueParser;
     }
     
     // ========================================================
@@ -1689,7 +1889,7 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
               choice(
                 anyWord(),
                 anyLiteral(),
-                anySymbol(),
+                anySeparator(),
                 anyWhitespace()
               )
             ),
@@ -1726,7 +1926,7 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
               choice(
                 anyWord(),
                 anyLiteral(),
-                anySymbol(),
+                anySeparator(),
                 anyWhitespace()
               )
             ),
@@ -1758,7 +1958,7 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
               choice(
                 anyWord(),
                 anyLiteral(),
-                anySymbol(),
+                anySeparator(),
                 anyWhitespace()
               )
             ),
@@ -1790,7 +1990,7 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
               choice(
                 anyWord(),
                 anyLiteral(),
-                anySymbol(),
+                anySeparator(),
                 anyWhitespace()
               )
             ),
@@ -1822,7 +2022,7 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
               choice(
                 anyWord(),
                 anyLiteral(),
-                anySymbol(),
+                anySeparator(),
                 anyWhitespace()
               )
             ),
@@ -1854,7 +2054,7 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
               choice(
                 anyWord(),
                 anyLiteral(),
-                anySymbol(),
+                anySeparator(),
                 anyWhitespace()
               )
             ),
@@ -1915,26 +2115,26 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
     }
     
     // ========================================================
-    // anySymbol
+    // anySeparator
     // ........................................................
     
-    private ParserCombinator anySymbolParser = null;
+    private ParserCombinator anySeparatorParser = null;
     
-    public final Start anySymbol = Start.on(getNamespace(), "anySymbol");
+    public final Start anySeparator = Start.on(getNamespace(), "anySeparator");
     
-    public ParserCombinator anySymbol() {
-      if (anySymbolParser == null) {
-        FutureParser future = scoped("anySymbol", PUBLIC, true);
-        anySymbolParser = future;
+    public ParserCombinator anySeparator() {
+      if (anySeparatorParser == null) {
+        FutureParser future = scoped("anySeparator", PUBLIC, true);
+        anySeparatorParser = future;
         future.setParser(
           sequence(
-            tagged(SYMBOL),
+            tagged(SEPARATOR),
             any()
           )
         );
       }
     
-      return anySymbolParser;
+      return anySeparatorParser;
     }
     
     // ========================================================
@@ -1958,6 +2158,29 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
       }
     
       return anyWhitespaceParser;
+    }
+    
+    // ========================================================
+    // eol
+    // ........................................................
+    
+    private ParserCombinator eolParser = null;
+    
+    public final Start eol = Start.on(getNamespace(), "eol");
+    
+    public ParserCombinator eol() {
+      if (eolParser == null) {
+        FutureParser future = scoped("eol", PUBLIC, true);
+        eolParser = future;
+        future.setParser(
+          sequence(
+            tagged(END_OF_LINE),
+            any()
+          )
+        );
+      }
+    
+      return eolParser;
     }
     
     // ========================================================
@@ -2431,7 +2654,7 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
             choice(
               anyWord(),
               anyLiteral(),
-              anySymbol(),
+              anySeparator(),
               anyWhitespace()
             )
           )
@@ -2490,7 +2713,7 @@ public class CobolDependencyGrammar extends CobolDependencyBaseGrammar {
             choice(
               anyWord(),
               anyLiteral(),
-              anySymbol(),
+              anySeparator(),
               anyWhitespace()
             )
           )
