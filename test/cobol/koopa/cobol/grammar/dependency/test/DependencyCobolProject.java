@@ -5,6 +5,9 @@ import java.io.File;
 import koopa.cobol.CobolFiles;
 import koopa.cobol.grammar.dependency.CobolDependencyGrammar;
 import koopa.cobol.grammar.CobolGrammar;
+import koopa.cobol.grammar.preprocessing.CobolPreprocessingGrammar;
+import koopa.cobol.parser.CobolParser;
+import koopa.cobol.parser.dependency.CobolDependencyParser;
 import koopa.cobol.projects.StandardCobolProject;
 import koopa.core.parsers.ParserCombinator;
 
@@ -38,6 +41,18 @@ public class DependencyCobolProject extends StandardCobolProject {
         // Return the main grammar for interface compatibility
         // The key is that parserFor() uses the dependency grammar
         return super.getGrammar();
+    }
+
+    @Override
+    public CobolPreprocessingGrammar getPreprocessingGrammar() {
+        return dependencyGrammar;
+    }
+
+    @Override
+    public CobolParser createParser() {
+        CobolDependencyParser parser = new CobolDependencyParser();
+        parser.setProject(this);
+        return parser;
     }
 
     /**

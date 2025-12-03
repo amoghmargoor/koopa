@@ -30,9 +30,7 @@ public class CobolParserFactory {
 	}
 
 	public CobolParser getParser() {
-		final CobolParser parser = new CobolParser();
-
-		parser.setProject(project);
+		final CobolParser parser = project.createParser();
 
 		parser.setKeepingTrackOfTokens(keepingTrackOfTokens);
 		parser.setBuildTrees(buildTrees);

@@ -29,7 +29,7 @@ public final class CobolTokens {
 	public static Source getNewSource(File file, Reader reader,
 			CobolProject project) {
 
-		final CobolPreprocessingGrammar grammar = project.getGrammar();
+		final CobolPreprocessingGrammar grammar = project.getPreprocessingGrammar();
 
 		// Note: The logical unit is a source line, I think.
 		// You should never ask for the next line if you haven't resolved the

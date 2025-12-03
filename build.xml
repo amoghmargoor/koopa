@@ -398,6 +398,25 @@
 		</junit>
 	</target>
 
+	<target name="run-debug-dependency-test">
+		<junit fork="yes" printsummary="yes" haltonfailure="no" showoutput="yes">
+			<classpath>
+				<pathelement location="build/" />
+				<fileset dir="lib">
+					<include name="*.jar" />
+				</fileset>
+			</classpath>
+
+			<assertions>
+				<enable />
+			</assertions>
+
+			<formatter type="brief" usefile="no" />
+
+			<test name="koopa.cobol.grammar.dependency.test.DebugDependencyParsingTest" />
+		</junit>
+	</target>
+
 	<target name="random-tests">
 		<junit fork="yes" printsummary="yes" haltonfailure="yes" showoutput="yes">
 			<sysproperty key="koopa.tests.random" value="true" />

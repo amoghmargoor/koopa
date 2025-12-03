@@ -20,6 +20,13 @@ public interface CobolProject {
 	CobolGrammar getGrammar();
 
 	/**
+	 * What preprocessing grammar should be used for tokenization?
+	 * This returns the grammar used for preprocessing/tokenization, 
+	 * which may be different from the main parsing grammar.
+	 */
+	koopa.cobol.grammar.preprocessing.CobolPreprocessingGrammar getPreprocessingGrammar();
+
+	/**
 	 * The <code>sourceFile</code> is looking for copybook <code>textName</code>
 	 * of <code>libraryName</code>. This should return the right file for that
 	 * copybook, or <code>null</code> if it couldn't be found.
@@ -103,4 +110,14 @@ public interface CobolProject {
 	 * Get a copy of this CobolProject with the same settings.
 	 */
 	CobolProject duplicate();
+
+	/**
+	 * Create a parser instance appropriate for this project type.
+	 * This allows different project types to use different parser implementations.
+	 */
+	default koopa.cobol.parser.CobolParser createParser() {
+		koopa.cobol.parser.CobolParser parser = new koopa.cobol.parser.CobolParser();
+		parser.setProject(this);
+		return parser;
+	}
 }

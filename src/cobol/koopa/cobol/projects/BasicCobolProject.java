@@ -5,6 +5,7 @@ import java.io.File;
 import koopa.cobol.CobolFiles;
 import koopa.cobol.CobolProject;
 import koopa.cobol.grammar.CobolGrammar;
+import koopa.cobol.grammar.preprocessing.CobolPreprocessingGrammar;
 import koopa.cobol.sources.SourceFormat;
 import koopa.core.parsers.ParserCombinator;
 import koopa.core.util.TabStops;
@@ -52,6 +53,11 @@ public class BasicCobolProject implements CobolProject {
 
 	@Override
 	public CobolGrammar getGrammar() {
+		return grammar;
+	}
+
+	@Override
+	public CobolPreprocessingGrammar getPreprocessingGrammar() {
 		return grammar;
 	}
 

@@ -9,6 +9,7 @@ import java.io.IOException;
 import org.junit.Test;
 
 import koopa.cobol.grammar.dependency.CobolDependencyGrammar;
+import koopa.cobol.parser.CobolParser;
 import koopa.cobol.parser.ParseResults;
 import koopa.core.parsers.ParserCombinator;
 
@@ -28,7 +29,7 @@ public class CobolDependencyFileTest {
 		
 		// Create a dependency project and parser
 		DependencyCobolProject project = createDependencyProject();
-		DependencyCobolParser parser = new DependencyCobolParser(project);
+		CobolParser parser = project.createParser();
 		parser.setKeepingTrackOfTokens(true);
 		
 		// Verify we're using the dependency grammar
@@ -60,7 +61,7 @@ public class CobolDependencyFileTest {
 		
 		// Create a dependency project and parser
 		DependencyCobolProject project = createDependencyProject();
-		DependencyCobolParser parser = new DependencyCobolParser(project);
+		CobolParser parser = project.createParser();
 		parser.setKeepingTrackOfTokens(true);
 		
 		// Parse the file
@@ -86,7 +87,7 @@ public class CobolDependencyFileTest {
 		
 		// Create a dependency project and parser
 		DependencyCobolProject project = createDependencyProject();
-		DependencyCobolParser parser = new DependencyCobolParser(project);
+		CobolParser parser = project.createParser();
 		parser.setKeepingTrackOfTokens(true);
 		
 		// Parse the file
