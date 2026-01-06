@@ -73,6 +73,45 @@ public class Tree implements Data {
 		return builder.toString();
 	}
 
+	/**
+	 * Builds up a string representation of the program text being held in this
+	 * tree, respecting the node's position boundaries.
+	 * <p>
+	 * This does not take {@linkplain AreaTag#COMMENT}s into account.
+	 * <p>
+	 * This method ensures that only tokens within the node's start and end
+	 * positions are included, preventing descendant nodes with invalid positions
+	 * from including text from outside this node's boundaries.
+	 * <p>
+	 * If this node has null positions, returns empty string to avoid including
+	 * unbounded content from descendants.
+	 */
+	public String getProgramTextWithinBounds() {
+		StringBuilder builder = new StringBuilder();
+		Position nodeStart = getStartPosition();
+		Position nodeEnd = getEndPosition();
+
+		// If this node has no position information, return empty string
+		// to prevent unbounded text collection from descendants
+		if (nodeStart == null || nodeEnd == null) {
+			return "";
+		}
+
+		for (Token t : allTokens(new ProgramTextFilter())) {
+			Position tokenStart = t.getStart();
+			Position tokenEnd = t.getEnd();
+
+			// Skip tokens with no position info or outside our boundaries
+			if (tokenStart != null && tokenEnd != null) {
+				if (tokenEnd.compareTo(nodeStart) < 0 || tokenStart.compareTo(nodeEnd) > 0) {
+					continue;
+				}
+				builder.append(t.getText());
+			}
+		}
+		return builder.toString();
+	}
+
 	public String getAllText() {
 		StringBuilder b = new StringBuilder();
 		for (Token t : allTokens())

@@ -564,6 +564,193 @@
 		</jar>
 	</target>
 
+	<!-- MAVEN PACKAGING -->
+
+	<property name="maven.version" value="1.0.0" />
+	<property name="maven.groupId" value="koopa" />
+	<property name="maven.artifactId" value="koopa-cobol" />
+	<property name="maven.temp.dir" location="${java.io.tmpdir}/koopa-maven-${user.name}" />
+
+	<target name="maven-setup" depends="build">
+		<echo>Setting up Maven project structure...</echo>
+		<delete dir="${maven.temp.dir}" />
+		<mkdir dir="${maven.temp.dir}/target/classes" />
+		
+		<!-- Copy compiled classes -->
+		<copy todir="${maven.temp.dir}/target/classes">
+			<fileset dir="build">
+				<include name="koopa/**" />
+			</fileset>
+		</copy>
+		
+		<!-- Copy resources -->
+		<copy todir="${maven.temp.dir}/target/classes">
+			<fileset dir="build">
+				<include name="**/*.properties" />
+				<include name="**/*.kg" />
+			</fileset>
+		</copy>
+	</target>
+
+	<target name="maven-pom-shaded" depends="maven-setup">
+		<echo>Creating POM for shaded fat JAR...</echo>
+		<concat destfile="${maven.temp.dir}/pom.xml" overwrite="true">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+         http://maven.apache.org/xsd/maven-4.0.0.xsd"&gt;
+    &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+    &lt;groupId&gt;${maven.groupId}&lt;/groupId&gt;
+    &lt;artifactId&gt;${maven.artifactId}&lt;/artifactId&gt;
+    &lt;version&gt;${maven.version}&lt;/version&gt;
+    &lt;packaging&gt;jar&lt;/packaging&gt;
+    
+    &lt;dependencies&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;jaxen&lt;/groupId&gt;
+            &lt;artifactId&gt;jaxen&lt;/artifactId&gt;
+            &lt;version&gt;1.1.1&lt;/version&gt;
+        &lt;/dependency&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.apache.logging.log4j&lt;/groupId&gt;
+            &lt;artifactId&gt;log4j-api&lt;/artifactId&gt;
+            &lt;version&gt;2.24.3&lt;/version&gt;
+        &lt;/dependency&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.apache.logging.log4j&lt;/groupId&gt;
+            &lt;artifactId&gt;log4j-core&lt;/artifactId&gt;
+            &lt;version&gt;2.24.3&lt;/version&gt;
+        &lt;/dependency&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.apache.logging.log4j&lt;/groupId&gt;
+            &lt;artifactId&gt;log4j-1.2-api&lt;/artifactId&gt;
+            &lt;version&gt;2.24.3&lt;/version&gt;
+        &lt;/dependency&gt;
+    &lt;/dependencies&gt;
+    
+    &lt;build&gt;
+        &lt;plugins&gt;
+            &lt;plugin&gt;
+                &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+                &lt;artifactId&gt;maven-shade-plugin&lt;/artifactId&gt;
+                &lt;version&gt;3.4.1&lt;/version&gt;
+                &lt;executions&gt;
+                    &lt;execution&gt;
+                        &lt;phase&gt;package&lt;/phase&gt;
+                        &lt;goals&gt;
+                            &lt;goal&gt;shade&lt;/goal&gt;
+                        &lt;/goals&gt;
+                        &lt;configuration&gt;
+                            &lt;createDependencyReducedPom&gt;false&lt;/createDependencyReducedPom&gt;
+                            &lt;filters&gt;
+                                &lt;filter&gt;
+                                    &lt;artifact&gt;*:*&lt;/artifact&gt;
+                                    &lt;excludes&gt;
+                                        &lt;exclude&gt;META-INF/*.SF&lt;/exclude&gt;
+                                        &lt;exclude&gt;META-INF/*.DSA&lt;/exclude&gt;
+                                        &lt;exclude&gt;META-INF/*.RSA&lt;/exclude&gt;
+                                    &lt;/excludes&gt;
+                                &lt;/filter&gt;
+                            &lt;/filters&gt;
+                            &lt;artifactSet&gt;
+                                &lt;excludes&gt;
+                                    &lt;exclude&gt;com.ibm.icu:icu4j&lt;/exclude&gt;
+                                &lt;/excludes&gt;
+                            &lt;/artifactSet&gt;
+                            &lt;relocations&gt;
+                                &lt;relocation&gt;
+                                    &lt;pattern&gt;jaxen&lt;/pattern&gt;
+                                    &lt;shadedPattern&gt;koopa.shaded.jaxen&lt;/shadedPattern&gt;
+                                &lt;/relocation&gt;
+                                &lt;relocation&gt;
+                                    &lt;pattern&gt;org.jaxen&lt;/pattern&gt;
+                                    &lt;shadedPattern&gt;koopa.shaded.org.jaxen&lt;/shadedPattern&gt;
+                                &lt;/relocation&gt;
+                                &lt;relocation&gt;
+                                    &lt;pattern&gt;org.apache.logging.log4j&lt;/pattern&gt;
+                                    &lt;shadedPattern&gt;koopa.shaded.org.apache.logging.log4j&lt;/shadedPattern&gt;
+                                &lt;/relocation&gt;
+                                &lt;relocation&gt;
+                                    &lt;pattern&gt;org.apache.log4j&lt;/pattern&gt;
+                                    &lt;shadedPattern&gt;koopa.shaded.org.apache.log4j&lt;/shadedPattern&gt;
+                                &lt;/relocation&gt;
+                            &lt;/relocations&gt;
+                        &lt;/configuration&gt;
+                    &lt;/execution&gt;
+                &lt;/executions&gt;
+            &lt;/plugin&gt;
+        &lt;/plugins&gt;
+    &lt;/build&gt;
+&lt;/project&gt;</concat>
+	</target>
+
+	<target name="maven-pom-standard" depends="maven-setup">
+		<echo>Creating POM for standard JAR...</echo>
+		<concat destfile="${maven.temp.dir}/pom.xml" overwrite="true">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+         http://maven.apache.org/xsd/maven-4.0.0.xsd"&gt;
+    &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+    &lt;groupId&gt;${maven.groupId}&lt;/groupId&gt;
+    &lt;artifactId&gt;${maven.artifactId}&lt;/artifactId&gt;
+    &lt;version&gt;${maven.version}&lt;/version&gt;
+    &lt;packaging&gt;jar&lt;/packaging&gt;
+    
+    &lt;dependencies&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;jaxen&lt;/groupId&gt;
+            &lt;artifactId&gt;jaxen&lt;/artifactId&gt;
+            &lt;version&gt;1.1.1&lt;/version&gt;
+        &lt;/dependency&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.apache.logging.log4j&lt;/groupId&gt;
+            &lt;artifactId&gt;log4j-api&lt;/artifactId&gt;
+            &lt;version&gt;2.24.3&lt;/version&gt;
+        &lt;/dependency&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.apache.logging.log4j&lt;/groupId&gt;
+            &lt;artifactId&gt;log4j-core&lt;/artifactId&gt;
+            &lt;version&gt;2.24.3&lt;/version&gt;
+        &lt;/dependency&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.apache.logging.log4j&lt;/groupId&gt;
+            &lt;artifactId&gt;log4j-1.2-api&lt;/artifactId&gt;
+            &lt;version&gt;2.24.3&lt;/version&gt;
+        &lt;/dependency&gt;
+    &lt;/dependencies&gt;
+&lt;/project&gt;</concat>
+	</target>
+
+	<target name="maven-install" depends="maven-setup">
+		<echo>Building and installing with Maven (mvn install)...</echo>
+		<exec executable="mvn" dir="${maven.temp.dir}" failonerror="true">
+			<arg value="install" />
+			<arg value="-q" />
+		</exec>
+		
+		<!-- Copy JAR and POM to current directory -->
+		<copy file="${maven.temp.dir}/target/${maven.artifactId}-${maven.version}.jar" 
+		      tofile="${maven.artifactId}-${maven.version}.jar" />
+		<copy file="${maven.temp.dir}/pom.xml" 
+		      tofile="${maven.artifactId}-${maven.version}.pom" />
+		
+		<!-- Cleanup -->
+		<delete dir="${maven.temp.dir}" />
+		
+		<echo>SUCCESS! Koopa installed to Maven</echo>
+		<echo>JAR: ${maven.artifactId}-${maven.version}.jar</echo>
+		<echo>POM: ${maven.artifactId}-${maven.version}.pom</echo>
+	</target>
+
+	<target name="maven-shaded" depends="maven-pom-shaded,maven-install">
+		<echo>Created SHADED FAT JAR with relocated dependencies</echo>
+	</target>
+
+	<target name="maven-standard" depends="maven-pom-standard,maven-install">
+		<echo>Created STANDARD JAR with dependencies declared in POM</echo>
+	</target>
+
 	<!-- SVN -->
 
 	<target name="revision-number" depends="core-build">

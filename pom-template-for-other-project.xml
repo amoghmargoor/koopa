@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    
+    <!-- Your project coordinates -->
+    <groupId>com.yourcompany</groupId>
+    <artifactId>your-project</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+    
+    <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+    
+    <dependencies>
+        <!-- ============================================ -->
+        <!-- Koopa COBOL Parser and Chunker              -->
+        <!-- ============================================ -->
+        <!-- 
+             Install Koopa to local Maven repo first:
+             ant maven-shaded    (for shaded fat JAR with relocated dependencies)
+             ant maven-standard  (for standard JAR with dependencies in POM)
+             
+             Or use a system scope if you have the JAR:
+             <dependency>
+                 <groupId>koopa</groupId>
+                 <artifactId>koopa-cobol</artifactId>
+                 <version>1.0.0</version>
+                 <scope>system</scope>
+                 <systemPath>${project.basedir}/lib/koopa-cobol-1.0.0.jar</systemPath>
+             </dependency>
+        -->
+        <dependency>
+            <groupId>koopa</groupId>
+            <artifactId>koopa-cobol</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        
+        <!-- ============================================ -->
+        <!-- Koopa Required Dependencies                 -->
+        <!-- ============================================ -->
+        
+        <!-- Jaxen: XPath queries on parse trees -->
+        <dependency>
+            <groupId>jaxen</groupId>
+            <artifactId>jaxen</artifactId>
+            <version>1.1.1</version>
+        </dependency>
+        
+        <!-- Log4j: Logging framework -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>2.24.3</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.24.3</version>
+        </dependency>
+        
+        <!-- Log4j 1.2 API bridge (for compatibility) -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-1.2-api</artifactId>
+            <version>2.24.3</version>
+        </dependency>
+        
+        <!-- ============================================ -->
+        <!-- Your Other Dependencies                     -->
+        <!-- ============================================ -->
+        <!-- Add your project's other dependencies here -->
+        
+    </dependencies>
+    
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+
